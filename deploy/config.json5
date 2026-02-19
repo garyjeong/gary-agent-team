@@ -44,6 +44,7 @@
         id: "pm",
         name: "PM",
         workspace: "/data/agents/pm/workspace",
+        agentDir: "/data/agents/pm/agent",
         model: {
           primary: "claude-gary/claude-sonnet-4-6",
           fallbacks: []
