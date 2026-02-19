@@ -13,7 +13,11 @@
           systemPromptArg: "--append-system-prompt",
           systemPromptWhen: "first",
           sessionArg: "--session-id",
-          sessionMode: "always"
+          sessionMode: "always",
+          reliability: { watchdog: {
+            fresh:  { noOutputTimeoutMs: 600000 },
+            resume: { noOutputTimeoutMs: 600000 }
+          }}
         },
         // Gary 서브에이전트용 + PM 본체 (Max 5x 계정)
         "claude-gary": {
@@ -26,7 +30,11 @@
           systemPromptArg: "--append-system-prompt",
           systemPromptWhen: "first",
           sessionArg: "--session-id",
-          sessionMode: "always"
+          sessionMode: "always",
+          reliability: { watchdog: {
+            fresh:  { noOutputTimeoutMs: 600000 },
+            resume: { noOutputTimeoutMs: 600000 }
+          }}
         }
       }
     },
@@ -37,7 +45,8 @@
         name: "PM",
         workspace: "/data/agents/pm/workspace",
         model: {
-          primary: "claude-gary/claude-sonnet-4-6"
+          primary: "claude-gary/claude-sonnet-4-6",
+          fallbacks: []
         }
       }
     ]

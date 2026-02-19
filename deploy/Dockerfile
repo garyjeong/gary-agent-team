@@ -6,10 +6,11 @@ USER root
 # Install Claude Code CLI
 RUN npm install -g @anthropic-ai/claude-code@latest
 
-# Install gh CLI for GitHub operations
+# Install gh CLI, git, AWS CLI for GitHub and AWS operations
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gh \
     git \
+    awscli \
     && rm -rf /var/lib/apt/lists/*
 
 # Create agent workspace directory
