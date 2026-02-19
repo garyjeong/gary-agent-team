@@ -1,0 +1,13 @@
+# Secrets
+*.env
+.env.*
+secrets.json
+
+# Fly.io
+.fly/
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
