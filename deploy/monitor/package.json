@@ -1,0 +1,15 @@
+{
+  "name": "openclaw-monitor",
+  "version": "1.0.0",
+  "description": "Lightweight monitoring API for OpenClaw gateway",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "json5": "^2.2.3",
+    "ws": "^8.18.0"
+  }
+}

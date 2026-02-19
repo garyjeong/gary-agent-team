@@ -27,11 +27,20 @@ RUN printf '#!/bin/sh\nCLAUDE_CONFIG_DIR=/data/.claude-viewster exec claude "$@"
 # Copy OpenClaw config (node user home)
 RUN mkdir -p /home/node/.openclaw
 COPY config.json5 /home/node/.openclaw/openclaw.json
-RUN chown -R node:node /home/node/.openclaw /data
+
+# Install monitor API server
+COPY monitor/ /opt/monitor/
+RUN cd /opt/monitor && npm install --production
+
+# Build and copy dashboard frontend (static export)
+COPY dashboard-build/ /opt/monitor/public/
+
+RUN chown -R node:node /home/node/.openclaw /data /opt/monitor
 
 # Switch back to node user
 USER node
 
-EXPOSE 18789
+EXPOSE 18789 3001
 
-CMD ["node", "openclaw.mjs", "gateway", "--bind", "lan", "--allow-unconfigured"]
+# Start OpenClaw gateway and monitor API in parallel
+CMD node /opt/monitor/server.js & node openclaw.mjs gateway --bind lan --allow-unconfigured
