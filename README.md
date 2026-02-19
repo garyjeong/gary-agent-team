@@ -65,13 +65,13 @@ YouTube 기반 리워드 영상 시청 플랫폼
 | 스토리지 | 2GB Persistent Volume (/data) |
 | 텔레그램 | @gary_office_bot |
 | CLI 백엔드 | claude-viewster (Max 20x), claude-gary (Max 5x) |
+| 대시보드 | https://gary-openclaw-gateway.fly.dev:3001 |
 
 ## 디렉토리 구조
 
 ```
 gary-agent-team/
 ├── README.md                           ← 이 파일
-├── OPENCLAW-AGENT-TEAM-DESIGN.md       ← 설계 문서
 ├── DEPLOY-GUIDE.md                     ← 배포 가이드
 │
 ├── deploy/                             ← OpenClaw Gateway 배포
@@ -79,29 +79,43 @@ gary-agent-team/
 │   ├── fly.toml
 │   ├── config.json5                    ← 에이전트/채널/바인딩 설정
 │   ├── setup-secrets.sh
-│   └── agents/
-│       ├── pm/workspace/               ← 시윤 (통합 PM, 상주)
-│       │   ├── CLAUDE.md               ← 응답 규칙, 행동 제약 (자동 로드)
-│       │   ├── SOUL.md                 ← 정체성, 성격, 프로젝트 지식
-│       │   ├── AGENTS.md               ← 작업 프로세스, 코드 패턴
-│       │   └── TOOLS.md                ← 허용/금지 도구, Cron
-│       ├── viewster-pm/workspace/      ← Viewster PM (비상주)
-│       │   ├── SOUL.md
-│       │   ├── AGENTS.md
-│       │   └── TOOLS.md
-│       └── gary-pm/workspace/          ← Gary PM (비상주)
-│           ├── SOUL.md
-│           ├── AGENTS.md
-│           └── TOOLS.md
+│   ├── build-dashboard.sh              ← 대시보드 프론트엔드 빌드 스크립트
+│   │
+│   ├── agents/
+│   │   ├── pm/workspace/               ← 시윤 (통합 PM, 상주)
+│   │   │   ├── CLAUDE.md               ← 응답 규칙, 행동 제약 (자동 로드)
+│   │   │   ├── SOUL.md                 ← 정체성, 성격, 프로젝트 지식
+│   │   │   ├── AGENTS.md               ← 작업 프로세스, 코드 패턴
+│   │   │   └── TOOLS.md                ← 허용/금지 도구, Cron
+│   │   ├── viewster-pm/workspace/      ← Viewster PM (비상주)
+│   │   │   ├── SOUL.md
+│   │   │   ├── AGENTS.md
+│   │   │   └── TOOLS.md
+│   │   └── gary-pm/workspace/          ← Gary PM (비상주)
+│   │       ├── SOUL.md
+│   │       ├── AGENTS.md
+│   │       └── TOOLS.md
+│   │
+│   └── monitor/                        ← 에이전트 모니터링 API (사이드카)
+│       ├── server.js                   ← Express + WebSocket 서버
+│       ├── package.json
+│       └── lib/
+│           ├── config.js               ← OpenClaw 설정 파일 읽기
+│           ├── sessions.js             ← 세션 파일 탐색/파싱
+│           ├── status.js               ← 에이전트 상태 판단
+│           ├── logs.js                 ← 로그 파일 읽기
+│           └── watcher.js              ← 파일 변경 감지
 │
-└── dashboard/                          ← 에이전트 모니터링 대시보드 (예정)
-    ├── backend/                        ← API 서버 (Node.js)
-    └── frontend/                       ← 모바일 퍼스트 SPA (React)
+└── (dashboard-build/)                  ← 빌드 산출물 (gitignore)
 ```
 
-## 대시보드 계획
+프론트엔드 소스: [garyjeong/agent-dashboard](https://github.com/garyjeong/agent-dashboard)
 
-OpenClaw 내부의 에이전트 상태를 실시간으로 모니터링하는 모바일 대시보드.
+## 대시보드
+
+OpenClaw 내부의 에이전트 상태를 실시간으로 모니터링하는 모바일 퍼스트 대시보드.
+
+**접속**: https://gary-openclaw-gateway.fly.dev:3001
 
 ### 기능
 
@@ -110,31 +124,37 @@ OpenClaw 내부의 에이전트 상태를 실시간으로 모니터링하는 모
 - 세션 정보 (모델, 토큰 사용량, 마지막 활동 시간)
 - API 호출 카운트 및 활성 세션 수
 - 최근 활동 타임라인
-- 에이전트별 작업 히스토리
+- WebSocket 기반 실시간 이벤트
 
 ### 기술 스택
 
-- Backend: Node.js + Express (OpenClaw 세션 데이터 읽기)
-- Frontend: React 19 + Tailwind CSS (모바일 퍼스트)
-- 실시간: WebSocket (OpenClaw ACP 프로토콜 연동)
-- 배포: Fly.io 또는 OpenClaw 컨테이너 사이드카
+- Frontend: Next.js 16 + React 19 + Tailwind CSS (정적 빌드)
+- Backend: Express.js (OpenClaw 컨테이너 사이드카, 포트 3001)
+- 실시간: WebSocket + fs.watch 파일 변경 감지
+- 배포: OpenClaw 컨테이너 내 사이드카 (동일 Fly.io 인스턴스)
 
-### 데이터 소스
+### API 엔드포인트
 
-- OpenClaw 세션 파일 (sessions.json): 에이전트 상태, 모델, 토큰
-- OpenClaw 설정 파일 (openclaw.json): 에이전트 목록, 바인딩
-- OpenClaw WebSocket (포트 18789): 실시간 이벤트
-- OpenClaw 로그: CLI 실행 기록, 에러
+| 엔드포인트 | 설명 |
+|---|---|
+| GET /api/agents | 에이전트 목록 + 상태 + 토큰 사용량 |
+| GET /api/sessions | 전체 세션 데이터 |
+| GET /api/sessions/:agentId | 특정 에이전트 세션 |
+| GET /api/stats | 집계 통계 (에이전트 수, 세션, 토큰) |
+| GET /api/logs | 최근 OpenClaw 로그 |
+| GET /api/health | 서버 + OpenClaw 프로세스 상태 |
+| WS /ws | 실시간 이벤트 스트림 |
 
 ## 배포
 
 ```bash
 cd deploy
+
+# 대시보드 프론트엔드 빌드 (agent-dashboard 리포 필요)
+bash build-dashboard.sh
+
+# Fly.io 배포
 fly deploy --remote-only -a gary-openclaw-gateway
 ```
 
 상세 배포 절차는 [DEPLOY-GUIDE.md](./DEPLOY-GUIDE.md) 참조.
-
-## 설계 문서
-
-전체 아키텍처, 모델 배분, 비용 분석, 보안 설계는 [OPENCLAW-AGENT-TEAM-DESIGN.md](./OPENCLAW-AGENT-TEAM-DESIGN.md) 참조.
