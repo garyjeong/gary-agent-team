@@ -14,7 +14,7 @@ primary_region = "nrt"
   DASHBOARD_DIR = "/opt/monitor/public"
 
 [[services]]
-  internal_port = 18789
+  internal_port = 3001
   protocol = "tcp"
   [[services.ports]]
     port = 443
@@ -22,13 +22,6 @@ primary_region = "nrt"
   [[services.ports]]
     port = 80
     handlers = ["http"]
-
-[[services]]
-  internal_port = 3001
-  protocol = "tcp"
-  [[services.ports]]
-    port = 3001
-    handlers = ["tls", "http"]
 
 [[vm]]
   size = "shared-cpu-1x"
