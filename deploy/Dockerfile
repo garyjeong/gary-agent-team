@@ -6,11 +6,14 @@ USER root
 # Install Claude Code CLI
 RUN npm install -g @anthropic-ai/claude-code@latest
 
-# Install gh CLI, git, AWS CLI for GitHub and AWS operations
+# Install gh CLI, git, AWS CLI, fly CLI for GitHub, AWS, and Fly.io operations
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gh \
     git \
     awscli \
+    curl \
+    && curl -L https://fly.io/install.sh | sh \
+    && ln -s /root/.fly/bin/flyctl /usr/local/bin/fly \
     && rm -rf /var/lib/apt/lists/*
 
 # Create agent workspace directory

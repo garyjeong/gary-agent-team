@@ -3,6 +3,8 @@
 ## 허용 도구
 - gh CLI (GitHub 작업)
 - git (버전 관리)
+- fly CLI (Fly.io 배포, 앱 상태 확인)
+- aws CLI (AWS 리소스 확인 - Viewster 인프라)
 - sessions_spawn (서브에이전트 스폰)
 - sessions_list (서브에이전트 목록)
 - sessions_history (서브에이전트 히스토리)
