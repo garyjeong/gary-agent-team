@@ -184,6 +184,103 @@ app.get('/api/logs', (req, res) => {
 });
 
 // -------------------------------------------------------------------
+// POST /api/chat
+// Sends a message to the PM agent via OpenClaw CLI and returns the reply.
+// Uses: openclaw agent --agent pm --message "..." --json --session-id "..."
+// -------------------------------------------------------------------
+const { execFile } = require('child_process');
+
+app.post('/api/chat', (req, res) => {
+  const { message, sessionId } = req.body;
+  if (!message || typeof message !== 'string') {
+    return res.status(400).json({ success: false, error: 'message is required' });
+  }
+
+  const args = [
+    'openclaw.mjs', 'agent',
+    '--agent', 'pm',
+    '--message', message,
+    '--json',
+  ];
+  if (sessionId) {
+    args.push('--session-id', sessionId);
+  }
+
+  console.log(`[/api/chat] Sending message to PM agent (session: ${sessionId || 'new'})`);
+
+  execFile('node', args, {
+    cwd: '/app',
+    timeout: 600_000,
+    maxBuffer: 10 * 1024 * 1024,
+    env: { ...process.env, HOME: '/home/node' },
+  }, (err, stdout, stderr) => {
+    if (err) {
+      console.error('[/api/chat] CLI error:', err.message);
+      if (stderr) console.error('[/api/chat] stderr:', stderr.substring(0, 500));
+      if (stdout) console.error('[/api/chat] stdout (on error):', stdout.substring(0, 500));
+      return res.status(500).json({
+        success: false,
+        error: 'Agent did not respond',
+        detail: (err.message || '').substring(0, 200),
+      });
+    }
+
+    console.log(`[/api/chat] stdout: ${stdout.length}b, stderr: ${stderr.length}b`);
+
+    // Extract agent reply from the JSON output
+    function extractReply(raw) {
+      // Strip ANSI escape codes
+      const clean = raw.replace(/\x1b\[[0-9;]*m/g, '').trim();
+
+      // 1. Try direct JSON.parse (--json outputs clean JSON to stdout)
+      try {
+        const data = JSON.parse(clean);
+        // Handle nested result.payloads structure
+        const payloads = data.payloads || data.result?.payloads;
+        const meta = data.meta || data.result?.meta;
+        if (payloads) {
+          const texts = payloads.map((p) => p.text).filter(Boolean);
+          return { content: texts.join('\n'), sessionId: meta?.agentMeta?.sessionId };
+        }
+        return { content: data.reply || data.text || data.message || data.content || '' };
+      } catch {}
+
+      // 2. Try finding JSON in multi-line output (with debug lines before JSON)
+      const lines = clean.split('\n');
+      const jsonStart = lines.findIndex((l) => l.trim().startsWith('{'));
+      if (jsonStart >= 0) {
+        const jsonStr = lines.slice(jsonStart).join('\n');
+        try {
+          const data = JSON.parse(jsonStr);
+          const payloads = data.payloads || data.result?.payloads;
+          const meta = data.meta || data.result?.meta;
+          if (payloads) {
+            const texts = payloads.map((p) => p.text).filter(Boolean);
+            return { content: texts.join('\n'), sessionId: meta?.agentMeta?.sessionId };
+          }
+          return { content: data.reply || data.text || data.message || '' };
+        } catch {}
+      }
+
+      // 3. Return non-debug lines as plain text
+      const textLines = lines.filter((l) => !l.startsWith('[') && l.trim());
+      return { content: textLines.join('\n') };
+    }
+
+    const result = extractReply(stdout) || extractReply(stderr) || {};
+    const content = result.content || '';
+
+    if (content) {
+      console.log(`[/api/chat] Reply: ${content.substring(0, 100)}...`);
+      res.json({ success: true, data: { content, sessionId: result.sessionId || null } });
+    } else {
+      console.error('[/api/chat] Empty reply. stdout preview:', JSON.stringify(stdout.substring(0, 300)));
+      res.status(500).json({ success: false, error: 'Empty response from agent' });
+    }
+  });
+});
+
+// -------------------------------------------------------------------
 // GET /api/health
 // Returns server and OpenClaw process health.
 // -------------------------------------------------------------------
