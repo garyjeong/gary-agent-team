@@ -9,6 +9,8 @@ const { getRecentLogs } = require('./lib/logs');
 const { startWatching } = require('./lib/watcher');
 
 const path = require('path');
+const crypto = require('crypto');
+const cookieParser = require('cookie-parser');
 
 const PORT = process.env.MONITOR_PORT || 3001;
 const DASHBOARD_DIR = process.env.DASHBOARD_DIR || path.join(__dirname, 'public');
@@ -17,6 +19,123 @@ const startedAt = Date.now();
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(cookieParser());
+
+// -------------------------------------------------------------------
+// Auth & Security
+// -------------------------------------------------------------------
+const PASSWORD_HASH = process.env.DASHBOARD_PASSWORD_HASH || '';
+const activeSessions = new Set();
+
+function verifyPassword(password) {
+  if (!PASSWORD_HASH) return false;
+  const [salt, storedHash] = PASSWORD_HASH.split(':');
+  if (!salt || !storedHash) return false;
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(storedHash, 'hex'));
+}
+
+// Search engine blocking
+app.use((req, res, next) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  next();
+});
+
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain').send('User-agent: *\nDisallow: /\n');
+});
+
+// Login page HTML
+const LOGIN_PAGE = `<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Gary Agent Team</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e5e5e5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+display:flex;align-items:center;justify-content:center;min-height:100dvh}
+.card{background:#12121a;border:1px solid rgba(255,255,255,0.06);border-radius:24px;padding:40px;
+width:100%;max-width:360px;margin:16px}
+h1{font-size:18px;font-weight:700;text-align:center;margin-bottom:4px}
+.sub{font-size:12px;color:#6b7280;text-align:center;margin-bottom:28px}
+.badge{display:inline-block;background:rgba(99,102,241,0.15);color:#818cf8;font-size:11px;
+font-weight:600;padding:2px 10px;border-radius:9999px;margin-left:8px}
+input{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);
+border-radius:12px;padding:12px 16px;color:#e5e5e5;font-size:14px;outline:none;
+transition:border-color .2s,background .2s}
+input:focus{border-color:rgba(99,102,241,0.4);background:rgba(255,255,255,0.06);
+box-shadow:0 0 0 3px rgba(99,102,241,0.15)}
+input::placeholder{color:#6b7280}
+button{width:100%;margin-top:12px;padding:12px;background:#4f46e5;color:#fff;font-size:14px;
+font-weight:600;border:none;border-radius:12px;cursor:pointer;transition:background .2s}
+button:hover{background:#6366f1}
+button:disabled{background:#374151;color:#6b7280;cursor:not-allowed}
+.error{color:#f87171;font-size:12px;text-align:center;margin-top:12px;min-height:18px}
+</style></head><body>
+<div class="card">
+<h1>Gary Agent Team<span class="badge">Dashboard</span></h1>
+<p class="sub">접근이 제한된 페이지입니다</p>
+<form id="f">
+<input type="password" id="pw" placeholder="비밀번호를 입력하세요" autocomplete="current-password" autofocus>
+<button type="submit" id="btn">로그인</button>
+<p class="error" id="err"></p>
+</form></div>
+<script>
+const f=document.getElementById('f'),pw=document.getElementById('pw'),
+btn=document.getElementById('btn'),err=document.getElementById('err');
+f.addEventListener('submit',async e=>{
+e.preventDefault();err.textContent='';btn.disabled=true;btn.textContent='확인 중...';
+try{const r=await fetch('/api/auth/login',{method:'POST',
+headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw.value})});
+const d=await r.json();
+if(d.success){location.href='/';}
+else{err.textContent=d.error||'비밀번호가 틀렸습니다';pw.value='';pw.focus();}
+}catch{err.textContent='서버 연결 실패';}
+finally{btn.disabled=false;btn.textContent='로그인';}});
+</script></body></html>`;
+
+// Auth endpoints
+app.post('/api/auth/login', (req, res) => {
+  const { password } = req.body;
+  if (!password || !verifyPassword(password)) {
+    return res.status(401).json({ success: false, error: '비밀번호가 틀렸습니다' });
+  }
+  const token = crypto.randomBytes(32).toString('hex');
+  activeSessions.add(token);
+  res.cookie('auth_token', token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: '/',
+  });
+  res.json({ success: true });
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  const token = req.cookies?.auth_token;
+  if (token) activeSessions.delete(token);
+  res.clearCookie('auth_token');
+  res.json({ success: true });
+});
+
+// Auth middleware - protect all subsequent routes
+app.use((req, res, next) => {
+  // Skip auth if no password is configured
+  if (!PASSWORD_HASH) return next();
+  // Allow auth endpoints and robots.txt
+  if (req.path === '/api/auth/login' || req.path === '/robots.txt') return next();
+
+  const token = req.cookies?.auth_token;
+  if (token && activeSessions.has(token)) return next();
+
+  // Return login page for HTML requests, 401 for API
+  if (req.path.startsWith('/api/')) {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
+  return res.status(200).type('html').send(LOGIN_PAGE);
+});
 
 // -------------------------------------------------------------------
 // GET /api/agents
@@ -191,14 +310,18 @@ app.get('/api/logs', (req, res) => {
 const { execFile } = require('child_process');
 
 app.post('/api/chat', (req, res) => {
-  const { message, sessionId } = req.body;
+  const { message, sessionId, agentId } = req.body;
   if (!message || typeof message !== 'string') {
     return res.status(400).json({ success: false, error: 'message is required' });
   }
 
+  // Validate agentId if provided, default to 'pm'
+  const validAgents = new Set(['pm', 'viewster-pm', 'gary-pm']);
+  const targetAgent = (agentId && validAgents.has(agentId)) ? agentId : 'pm';
+
   const args = [
     'openclaw.mjs', 'agent',
-    '--agent', 'pm',
+    '--agent', targetAgent,
     '--message', message,
     '--json',
   ];
@@ -206,7 +329,7 @@ app.post('/api/chat', (req, res) => {
     args.push('--session-id', sessionId);
   }
 
-  console.log(`[/api/chat] Sending message to PM agent (session: ${sessionId || 'new'})`);
+  console.log(`[/api/chat] Sending message to ${targetAgent} agent (session: ${sessionId || 'new'})`);
 
   execFile('node', args, {
     cwd: '/app',
@@ -274,10 +397,90 @@ app.post('/api/chat', (req, res) => {
       console.log(`[/api/chat] Reply: ${content.substring(0, 100)}...`);
       res.json({ success: true, data: { content, sessionId: result.sessionId || null } });
     } else {
-      console.error('[/api/chat] Empty reply. stdout preview:', JSON.stringify(stdout.substring(0, 300)));
-      res.status(500).json({ success: false, error: 'Empty response from agent' });
+      // Agent completed but returned no text (e.g. spawned sub-agents or ran tools)
+      console.log('[/api/chat] Empty payloads - agent executed tools without text reply. stdout preview:', JSON.stringify(stdout.substring(0, 300)));
+      res.json({ success: true, data: { content: '작업을 처리했어. 텍스트 응답 없이 도구를 실행한 것 같아. 진행 상황을 물어봐줘.', sessionId: result.sessionId || null } });
     }
   });
+});
+
+// -------------------------------------------------------------------
+// GET /api/usage
+// Returns Claude Max rate-limit usage for each CLI backend account.
+// Reads OAuth tokens from credential files and calls Anthropic API.
+// -------------------------------------------------------------------
+const USAGE_CACHE_TTL = 60_000; // 60 seconds
+let usageCache = { data: null, timestamp: 0 };
+
+const ACCOUNTS = [
+  { id: 'claude-viewster', label: 'Max 20x', credPath: '/data/.claude-viewster/.credentials.json' },
+  { id: 'claude-gary', label: 'Max 5x', credPath: '/data/.claude-gary/.credentials.json' },
+];
+
+function readOAuthToken(credPath) {
+  try {
+    if (!fs.existsSync(credPath)) return null;
+    const data = JSON.parse(fs.readFileSync(credPath, 'utf8'));
+    const token = data.claudeAiOauth?.accessToken;
+    const expiresAt = data.claudeAiOauth?.expiresAt;
+    if (!token) return null;
+    if (expiresAt && expiresAt <= Date.now()) return null;
+    return token;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchAccountUsage(token) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch('https://api.anthropic.com/api/oauth/usage', {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        'anthropic-beta': 'oauth-2025-04-20',
+      },
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return {
+      five_hour: data.five_hour || null,
+      seven_day: data.seven_day || null,
+      seven_day_sonnet: data.seven_day_sonnet || null,
+    };
+  } catch {
+    clearTimeout(timeout);
+    return null;
+  }
+}
+
+app.get('/api/usage', async (req, res) => {
+  try {
+    const now = Date.now();
+    if (usageCache.data && (now - usageCache.timestamp) < USAGE_CACHE_TTL) {
+      return res.json({ success: true, data: usageCache.data });
+    }
+
+    const results = await Promise.all(
+      ACCOUNTS.map(async (account) => {
+        const token = readOAuthToken(account.credPath);
+        if (!token) return { id: account.id, label: account.label, usage: null, error: 'no token' };
+        const usage = await fetchAccountUsage(token);
+        return { id: account.id, label: account.label, usage, error: usage ? null : 'api error' };
+      })
+    );
+
+    usageCache = { data: results, timestamp: now };
+    res.json({ success: true, data: results });
+  } catch (err) {
+    console.error('[/api/usage] Error:', err.message);
+    res.json({ success: true, data: [] });
+  }
 });
 
 // -------------------------------------------------------------------
