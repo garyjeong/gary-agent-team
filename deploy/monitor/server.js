@@ -4,7 +4,7 @@ const cors = require('cors');
 const { WebSocketServer } = require('ws');
 const { getAgentsList } = require('./lib/config');
 const { getAllSessions, getSessionsByAgent, getSessionsForAgent } = require('./lib/sessions');
-const { getAgentStatus, getLastActivity, sumTokenUsage, isOpenClawRunning } = require('./lib/status');
+const { getAgentStatus, getLastActivity, sumTokenUsage, isOpenClawRunning, markChatStarted, markChatEnded } = require('./lib/status');
 const { getRecentLogs } = require('./lib/logs');
 const { startWatching } = require('./lib/watcher');
 const { getEnvironmentInfo } = require('./lib/environment');
@@ -169,7 +169,7 @@ app.get('/api/agents', (req, res) => {
     const result = agents.map((agent) => {
       const sessions = sessionsByAgent[agent.id] || [];
       const status = getAgentStatus(sessions, agent.id);
-      const lastActivity = getLastActivity(sessions);
+      const lastActivity = getLastActivity(sessions, agent.id);
       const tokenUsage = sumTokenUsage(sessions);
       const contextTokens = sessions.reduce((sum, s) => sum + (s.contextTokens || 0), 0);
       const modelStr = agent.model
@@ -195,7 +195,7 @@ app.get('/api/agents', (req, res) => {
       if (configuredIds.has(agentId)) continue;
 
       const status = getAgentStatus(sessions, agentId);
-      const lastActivity = getLastActivity(sessions);
+      const lastActivity = getLastActivity(sessions, agentId);
       const tokenUsage = sumTokenUsage(sessions);
       const contextTokens = sessions.reduce((sum, s) => sum + (s.contextTokens || 0), 0);
 
@@ -369,12 +369,23 @@ app.post('/api/chat', (req, res) => {
 
   console.log(`[/api/chat] Sending message to ${targetAgent} agent (session: ${sessionId || 'new'})`);
 
+  // Mark agent as active (chat started) and notify dashboard immediately
+  markChatStarted(targetAgent);
+  broadcast({
+    type: 'agent_status',
+    data: { agentId: targetAgent, status: 'active' },
+    timestamp: Date.now(),
+  });
+
   execFile('node', args, {
     cwd: '/app',
     timeout: 600_000,
     maxBuffer: 10 * 1024 * 1024,
     env: { ...process.env, HOME: '/home/node' },
   }, (err, stdout, stderr) => {
+    // Mark agent chat as ended (regardless of success/failure)
+    markChatEnded(targetAgent);
+
     if (err) {
       console.error('[/api/chat] CLI error:', err.message);
       if (stderr) console.error('[/api/chat] stderr:', stderr.substring(0, 500));

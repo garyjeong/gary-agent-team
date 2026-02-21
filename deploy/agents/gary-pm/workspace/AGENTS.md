@@ -47,6 +47,15 @@ sessions_spawn(
 )
 ```
 
+Flutter 앱 예시:
+```
+sessions_spawn(
+  task: "[프로젝트]에서 [작업 내용]. Flutter + Dart. GoRouter 네비게이션. Provider/BLoC 상태관리. Material Design 3. 관련 파일: lib/",
+  model: "claude-cli/sonnet-4.6",
+  label: "flutter-[task-name]"
+)
+```
+
 ### 5단계: 결과 취합 및 QA 스폰
 ```
 sessions_spawn(
@@ -88,6 +97,19 @@ export class XxxService {
 from telegram.ext import Application, CommandHandler
 app = Application.builder().token(TOKEN).build()
 app.add_handler(CommandHandler("command", handler))
+```
+
+### Flutter App
+```dart
+// GoRouter 네비게이션 + Provider 상태관리 + Material Design 3
+// pubspec.yaml: provider ^6.0.0, http ^1.1.0, go_router ^12.0.0
+lib/
+├── main.dart          # MaterialApp.router + GoRouter
+├── models/            # 데이터 모델 (fromJson/toJson)
+├── providers/         # ChangeNotifier 기반 상태관리
+├── screens/           # 화면 위젯 (Consumer 패턴)
+├── widgets/           # 재사용 위젯 (const 생성자)
+└── services/          # API 클라이언트
 ```
 
 ### React Frontend (공통)
