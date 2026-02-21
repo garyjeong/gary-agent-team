@@ -15,8 +15,8 @@
           sessionArg: "--session-id",
           sessionMode: "always",
           reliability: { watchdog: {
-            fresh:  { noOutputTimeoutMs: 600000 },
-            resume: { noOutputTimeoutMs: 600000 }
+            fresh:  { noOutputTimeoutMs: 300000 },
+            resume: { noOutputTimeoutMs: 300000 }
           }}
         },
         // Gary 서브에이전트용 + PM 본체 (Max 5x 계정)
@@ -32,8 +32,8 @@
           sessionArg: "--session-id",
           sessionMode: "always",
           reliability: { watchdog: {
-            fresh:  { noOutputTimeoutMs: 600000 },
-            resume: { noOutputTimeoutMs: 600000 }
+            fresh:  { noOutputTimeoutMs: 300000 },
+            resume: { noOutputTimeoutMs: 300000 }
           }}
         }
       }
@@ -46,7 +46,7 @@
         workspace: "/data/agents/pm/workspace",
         agentDir: "/data/agents/pm/agent",
         model: {
-          primary: "claude-gary/claude-sonnet-4-6",
+          primary: "claude-viewster/claude-opus-4-6",
           fallbacks: []
         }
       },

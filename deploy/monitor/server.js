@@ -7,6 +7,7 @@ const { getAllSessions, getSessionsByAgent, getSessionsForAgent } = require('./l
 const { getAgentStatus, getLastActivity, sumTokenUsage, isOpenClawRunning } = require('./lib/status');
 const { getRecentLogs } = require('./lib/logs');
 const { startWatching } = require('./lib/watcher');
+const { getEnvironmentInfo } = require('./lib/environment');
 
 const path = require('path');
 const crypto = require('crypto');
@@ -510,6 +511,20 @@ app.get('/api/health', (req, res) => {
         error: err.message,
       },
     });
+  }
+});
+
+// -------------------------------------------------------------------
+// GET /api/environment
+// Returns deployed environment info: skills, plugins, agent tools.
+// -------------------------------------------------------------------
+app.get('/api/environment', (req, res) => {
+  try {
+    const data = getEnvironmentInfo();
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error('[/api/environment] Error:', err.message);
+    res.json({ success: true, data: { plugins: [], skills: [], agentTools: {}, cliBackends: [] } });
   }
 });
 

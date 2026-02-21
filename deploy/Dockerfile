@@ -6,12 +6,13 @@ USER root
 # Install Claude Code CLI
 RUN npm install -g @anthropic-ai/claude-code@latest
 
-# Install gh CLI, git, AWS CLI, fly CLI for GitHub, AWS, and Fly.io operations
+# Install gh CLI, git, AWS CLI, fly CLI, jq for GitHub, AWS, Fly.io operations and config merging
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gh \
     git \
     awscli \
     curl \
+    jq \
     && curl -L https://fly.io/install.sh | sh \
     && ln -s /root/.fly/bin/flyctl /usr/local/bin/fly \
     && rm -rf /var/lib/apt/lists/*
@@ -47,12 +48,18 @@ RUN cd /opt/monitor && npm install --production
 # Build and copy dashboard frontend (static export)
 COPY dashboard-build/ /opt/monitor/public/
 
-RUN chown -R node:node /home/node/.openclaw /data /opt/monitor
+# Copy Claude Skills & Plugins config staging directory
+COPY claude-config/ /opt/claude-config/
+COPY setup-claude-config.sh /opt/setup-claude-config.sh
+RUN chmod +x /opt/setup-claude-config.sh
+
+RUN chown -R node:node /home/node/.openclaw /data /opt/monitor /opt/claude-config /opt/setup-claude-config.sh
 
 # Switch back to node user
 USER node
 
 EXPOSE 18789 3001
 
-# Start OpenClaw gateway and monitor API in parallel
-CMD node /opt/monitor/server.js & node openclaw.mjs gateway --bind lan --allow-unconfigured
+# Start: sync Claude config to volume, then launch monitor API + OpenClaw gateway
+# Note: semicolons ensure setup completes before services start
+CMD /opt/setup-claude-config.sh; node /opt/monitor/server.js & node openclaw.mjs gateway --bind lan --allow-unconfigured

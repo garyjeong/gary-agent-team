@@ -1,0 +1,71 @@
+{
+  "version": 2,
+  "plugins": {
+    "context7@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "__CLAUDE_CONFIG_DIR__/plugins/cache/claude-plugins-official/context7/aa296ec81e8c",
+        "version": "aa296ec81e8c",
+        "installedAt": "2025-12-26T06:20:00.510Z",
+        "lastUpdated": "2026-02-21T05:56:12.279Z"
+      }
+    ],
+    "frontend-design@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "__CLAUDE_CONFIG_DIR__/plugins/cache/claude-plugins-official/frontend-design/aa296ec81e8c",
+        "version": "aa296ec81e8c",
+        "installedAt": "2025-12-26T06:20:13.402Z",
+        "lastUpdated": "2026-02-21T05:56:12.280Z"
+      }
+    ],
+    "github@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "__CLAUDE_CONFIG_DIR__/plugins/cache/claude-plugins-official/github/aa296ec81e8c",
+        "version": "aa296ec81e8c",
+        "installedAt": "2025-12-26T06:20:19.451Z",
+        "lastUpdated": "2026-02-21T05:56:12.279Z"
+      }
+    ],
+    "commit-commands@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "__CLAUDE_CONFIG_DIR__/plugins/cache/claude-plugins-official/commit-commands/aa296ec81e8c",
+        "version": "aa296ec81e8c",
+        "installedAt": "2025-12-26T06:20:33.626Z",
+        "lastUpdated": "2026-02-21T05:56:12.281Z"
+      }
+    ],
+    "code-review@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "__CLAUDE_CONFIG_DIR__/plugins/cache/claude-plugins-official/code-review/aa296ec81e8c",
+        "version": "aa296ec81e8c",
+        "installedAt": "2026-01-19T07:12:24.683Z",
+        "lastUpdated": "2026-02-21T05:56:12.281Z",
+        "gitCommitSha": "96276205880a60fd66bbae981f5ab568e70c4cbf"
+      }
+    ],
+    "pinecone@claude-plugins-official": [
+      {
+        "scope": "user",
+        "installPath": "__CLAUDE_CONFIG_DIR__/plugins/cache/claude-plugins-official/pinecone/1.1.2",
+        "version": "1.1.2",
+        "installedAt": "2026-01-19T07:12:26.505Z",
+        "lastUpdated": "2026-01-28T08:43:06.364Z",
+        "gitCommitSha": "05a0cd61bdf076a5a3ab3e90f4765b37a76330d1"
+      }
+    ],
+    "document-skills@anthropic-agent-skills": [
+      {
+        "scope": "user",
+        "installPath": "__CLAUDE_CONFIG_DIR__/plugins/cache/anthropic-agent-skills/document-skills/69c0b1a06741",
+        "version": "69c0b1a06741",
+        "installedAt": "2026-01-19T07:12:26.613Z",
+        "lastUpdated": "2026-01-19T07:12:26.613Z",
+        "gitCommitSha": "69c0b1a0674149f27b61b2635f935524b6add202"
+      }
+    ]
+  }
+}
