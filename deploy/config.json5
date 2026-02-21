@@ -40,6 +40,7 @@
     },
 
     list: [
+      // === PM 계층 ===
       {
         id: "pm",
         name: "시윤",
@@ -65,6 +66,110 @@
         name: "도윤",
         workspace: "/data/agents/gary-pm/workspace",
         agentDir: "/data/agents/gary-pm/agent",
+        model: {
+          primary: "claude-gary/claude-sonnet-4-6",
+          fallbacks: []
+        }
+      },
+
+      // === Viewster 팀 (claude-viewster 백엔드) ===
+      {
+        id: "viewster-be",
+        name: "민재",
+        workspace: "/data/agents/viewster-be/workspace",
+        agentDir: "/data/agents/viewster-be/agent",
+        model: {
+          primary: "claude-viewster/claude-sonnet-4-6",
+          fallbacks: []
+        }
+      },
+      {
+        id: "viewster-web",
+        name: "하은",
+        workspace: "/data/agents/viewster-web/workspace",
+        agentDir: "/data/agents/viewster-web/agent",
+        model: {
+          primary: "claude-viewster/claude-sonnet-4-6",
+          fallbacks: []
+        }
+      },
+      {
+        id: "viewster-mobile",
+        name: "지호",
+        workspace: "/data/agents/viewster-mobile/workspace",
+        agentDir: "/data/agents/viewster-mobile/agent",
+        model: {
+          primary: "claude-viewster/claude-sonnet-4-6",
+          fallbacks: []
+        }
+      },
+      {
+        id: "viewster-design",
+        name: "수아",
+        workspace: "/data/agents/viewster-design/workspace",
+        agentDir: "/data/agents/viewster-design/agent",
+        model: {
+          primary: "claude-viewster/claude-sonnet-4-6",
+          fallbacks: []
+        }
+      },
+      {
+        id: "viewster-qa",
+        name: "예준",
+        workspace: "/data/agents/viewster-qa/workspace",
+        agentDir: "/data/agents/viewster-qa/agent",
+        model: {
+          primary: "claude-viewster/claude-sonnet-4-6",
+          fallbacks: []
+        }
+      },
+
+      // === Gary Projects 팀 (claude-gary 백엔드) ===
+      {
+        id: "gary-be",
+        name: "서연",
+        workspace: "/data/agents/gary-be/workspace",
+        agentDir: "/data/agents/gary-be/agent",
+        model: {
+          primary: "claude-gary/claude-sonnet-4-6",
+          fallbacks: []
+        }
+      },
+      {
+        id: "gary-web",
+        name: "주원",
+        workspace: "/data/agents/gary-web/workspace",
+        agentDir: "/data/agents/gary-web/agent",
+        model: {
+          primary: "claude-gary/claude-sonnet-4-6",
+          fallbacks: []
+        }
+      },
+      {
+        id: "gary-mobile",
+        name: "다은",
+        workspace: "/data/agents/gary-mobile/workspace",
+        agentDir: "/data/agents/gary-mobile/agent",
+        model: {
+          primary: "claude-gary/claude-sonnet-4-6",
+          fallbacks: []
+        }
+      },
+      {
+        id: "gary-design",
+        name: "현우",
+        workspace: "/data/agents/gary-design/workspace",
+        agentDir: "/data/agents/gary-design/agent",
+        model: {
+          primary: "claude-gary/claude-sonnet-4-6",
+          fallbacks: []
+        }
+      },
+      {
+        id: "gary-qa",
+        name: "소율",
+        workspace: "/data/agents/gary-qa/workspace",
+        agentDir: "/data/agents/gary-qa/agent",
         model: {
           primary: "claude-gary/claude-sonnet-4-6",
           fallbacks: []

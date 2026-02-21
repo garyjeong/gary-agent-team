@@ -8,6 +8,7 @@ const { getAgentStatus, getLastActivity, sumTokenUsage, isOpenClawRunning } = re
 const { getRecentLogs } = require('./lib/logs');
 const { startWatching } = require('./lib/watcher');
 const { getEnvironmentInfo } = require('./lib/environment');
+const { appendMessage, getHistory, cleanOldFiles } = require('./lib/chat-history');
 
 const path = require('path');
 const crypto = require('crypto');
@@ -335,7 +336,11 @@ app.post('/api/chat', (req, res) => {
   }
 
   // Validate agentId if provided, default to 'pm'
-  const validAgents = new Set(['pm', 'viewster-pm', 'gary-pm']);
+  const validAgents = new Set([
+    'pm', 'viewster-pm', 'gary-pm',
+    'viewster-be', 'viewster-web', 'viewster-mobile', 'viewster-design', 'viewster-qa',
+    'gary-be', 'gary-web', 'gary-mobile', 'gary-design', 'gary-qa',
+  ]);
   const targetAgent = (agentId && validAgents.has(agentId)) ? agentId : 'pm';
 
   const args = [
@@ -347,6 +352,20 @@ app.post('/api/chat', (req, res) => {
   if (sessionId) {
     args.push('--session-id', sessionId);
   }
+
+  // Save user message to history
+  const agentList = getAgentsList();
+  const agentInfo = agentList.find((a) => a.id === targetAgent);
+  const agentName = agentInfo ? agentInfo.name : targetAgent;
+  appendMessage({
+    id: `srv-${Date.now()}-u`,
+    type: 'user-to-agent',
+    from: { id: 'user', name: '나' },
+    to: { id: targetAgent, name: agentName },
+    content: message,
+    timestamp: Date.now(),
+    status: 'sent',
+  });
 
   console.log(`[/api/chat] Sending message to ${targetAgent} agent (session: ${sessionId || 'new'})`);
 
@@ -412,15 +431,45 @@ app.post('/api/chat', (req, res) => {
     const result = extractReply(stdout) || extractReply(stderr) || {};
     const content = result.content || '';
 
+    const replyContent = content || '작업을 처리했어. 텍스트 응답 없이 도구를 실행한 것 같아. 진행 상황을 물어봐줘.';
+
+    // Save agent reply to history
+    appendMessage({
+      id: `srv-${Date.now()}-a`,
+      type: 'agent-to-user',
+      from: { id: targetAgent, name: agentName },
+      to: { id: 'user', name: '나' },
+      content: replyContent,
+      timestamp: Date.now(),
+      status: 'sent',
+    });
+
     if (content) {
       console.log(`[/api/chat] Reply: ${content.substring(0, 100)}...`);
       res.json({ success: true, data: { content, sessionId: result.sessionId || null } });
     } else {
       // Agent completed but returned no text (e.g. spawned sub-agents or ran tools)
       console.log('[/api/chat] Empty payloads - agent executed tools without text reply. stdout preview:', JSON.stringify(stdout.substring(0, 300)));
-      res.json({ success: true, data: { content: '작업을 처리했어. 텍스트 응답 없이 도구를 실행한 것 같아. 진행 상황을 물어봐줘.', sessionId: result.sessionId || null } });
+      res.json({ success: true, data: { content: replyContent, sessionId: result.sessionId || null } });
     }
   });
+});
+
+// -------------------------------------------------------------------
+// GET /api/chat/history
+// Returns chat messages from the last N days (server-side JSONL storage).
+// Query params: ?days=7&agentId=pm
+// -------------------------------------------------------------------
+app.get('/api/chat/history', (req, res) => {
+  try {
+    const days = Math.min(parseInt(req.query.days, 10) || 7, 30);
+    const agentId = req.query.agentId || null;
+    const data = getHistory(days, agentId);
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error('[/api/chat/history] Error:', err.message);
+    res.json({ success: true, data: { messages: [], totalCount: 0 } });
+  }
 });
 
 // -------------------------------------------------------------------
@@ -651,6 +700,9 @@ startWatching((event) => {
 // -------------------------------------------------------------------
 // Start server
 // -------------------------------------------------------------------
+// Clean old chat history files on startup
+cleanOldFiles(7);
+
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`[monitor] OpenClaw Monitor API running on port ${PORT}`);
   console.log(`[monitor] WebSocket available at ws://0.0.0.0:${PORT}/ws`);
