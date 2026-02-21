@@ -57,7 +57,7 @@
         workspace: "/data/agents/viewster-pm/workspace",
         agentDir: "/data/agents/viewster-pm/agent",
         model: {
-          primary: "claude-viewster/claude-sonnet-4-6",
+          primary: "claude-viewster/claude-opus-4-6",
           fallbacks: []
         }
       },
@@ -67,7 +67,7 @@
         workspace: "/data/agents/gary-pm/workspace",
         agentDir: "/data/agents/gary-pm/agent",
         model: {
-          primary: "claude-gary/claude-sonnet-4-6",
+          primary: "claude-gary/claude-opus-4-6",
           fallbacks: []
         }
       },
