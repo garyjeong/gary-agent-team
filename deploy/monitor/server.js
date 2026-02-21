@@ -26,7 +26,7 @@ app.use(cookieParser());
 // Auth & Security
 // -------------------------------------------------------------------
 const PASSWORD_HASH = process.env.DASHBOARD_PASSWORD_HASH || '';
-const activeSessions = new Set();
+const TOKEN_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 function verifyPassword(password) {
   if (!PASSWORD_HASH) return false;
@@ -34,6 +34,27 @@ function verifyPassword(password) {
   if (!salt || !storedHash) return false;
   const hash = crypto.scryptSync(password, salt, 64).toString('hex');
   return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(storedHash, 'hex'));
+}
+
+// Stateless HMAC token: survives server restarts
+function createAuthToken() {
+  const expires = Date.now() + TOKEN_MAX_AGE;
+  const sig = crypto.createHmac('sha256', PASSWORD_HASH).update(String(expires)).digest('hex');
+  return `${expires}.${sig}`;
+}
+
+function verifyAuthToken(token) {
+  if (!token || !PASSWORD_HASH) return false;
+  const [expiresStr, sig] = token.split('.');
+  if (!expiresStr || !sig) return false;
+  const expires = Number(expiresStr);
+  if (isNaN(expires) || Date.now() > expires) return false;
+  const expected = crypto.createHmac('sha256', PASSWORD_HASH).update(expiresStr).digest('hex');
+  try {
+    return crypto.timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'));
+  } catch {
+    return false;
+  }
 }
 
 // Search engine blocking
@@ -102,21 +123,18 @@ app.post('/api/auth/login', (req, res) => {
   if (!password || !verifyPassword(password)) {
     return res.status(401).json({ success: false, error: '비밀번호가 틀렸습니다' });
   }
-  const token = crypto.randomBytes(32).toString('hex');
-  activeSessions.add(token);
+  const token = createAuthToken();
   res.cookie('auth_token', token, {
     httpOnly: true,
     secure: true,
     sameSite: 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: TOKEN_MAX_AGE,
     path: '/',
   });
   res.json({ success: true });
 });
 
 app.post('/api/auth/logout', (req, res) => {
-  const token = req.cookies?.auth_token;
-  if (token) activeSessions.delete(token);
   res.clearCookie('auth_token');
   res.json({ success: true });
 });
@@ -129,7 +147,7 @@ app.use((req, res, next) => {
   if (req.path === '/api/auth/login' || req.path === '/robots.txt') return next();
 
   const token = req.cookies?.auth_token;
-  if (token && activeSessions.has(token)) return next();
+  if (token && verifyAuthToken(token)) return next();
 
   // Return login page for HTML requests, 401 for API
   if (req.path.startsWith('/api/')) {
