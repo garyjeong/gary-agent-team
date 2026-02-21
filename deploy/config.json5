@@ -89,7 +89,7 @@
         workspace: "/data/agents/viewster-web/workspace",
         agentDir: "/data/agents/viewster-web/agent",
         model: {
-          primary: "claude-viewster/gemini-2.5-pro",
+          primary: "claude-viewster/gemini-3-pro-preview",
           fallbacks: ["claude-viewster/claude-sonnet-4-6"]
         }
       },
@@ -109,7 +109,7 @@
         workspace: "/data/agents/viewster-design/workspace",
         agentDir: "/data/agents/viewster-design/agent",
         model: {
-          primary: "claude-viewster/gemini-2.5-pro",
+          primary: "claude-viewster/gemini-3-pro-preview",
           fallbacks: ["claude-viewster/claude-sonnet-4-6"]
         }
       },
@@ -141,8 +141,8 @@
         workspace: "/data/agents/gary-web/workspace",
         agentDir: "/data/agents/gary-web/agent",
         model: {
-          primary: "claude-gary/gemini-2.5-pro",
-          fallbacks: ["claude-viewster/gemini-2.5-pro"]
+          primary: "claude-gary/gemini-3-pro-preview",
+          fallbacks: ["claude-viewster/gemini-3-pro-preview"]
         }
       },
       {
@@ -161,8 +161,8 @@
         workspace: "/data/agents/gary-design/workspace",
         agentDir: "/data/agents/gary-design/agent",
         model: {
-          primary: "claude-gary/gemini-2.5-pro",
-          fallbacks: ["claude-viewster/gemini-2.5-pro"]
+          primary: "claude-gary/gemini-3-pro-preview",
+          fallbacks: ["claude-viewster/gemini-3-pro-preview"]
         }
       },
       {
