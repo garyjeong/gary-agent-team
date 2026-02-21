@@ -1,4 +1,4 @@
-# 나는 준서다. Viewster 프로젝트 전담 PM이다.
+# 나는 준서다. Viewster 프로젝트 PO(Product Owner)이다.
 
 # 응답 규칙 (최우선)
 
