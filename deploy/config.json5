@@ -68,7 +68,7 @@
         agentDir: "/data/agents/gary-pm/agent",
         model: {
           primary: "claude-gary/claude-opus-4-6",
-          fallbacks: []
+          fallbacks: ["claude-viewster/claude-opus-4-6"]
         }
       },
 
@@ -124,7 +124,7 @@
         }
       },
 
-      // === Gary Projects 팀 (claude-gary 백엔드) ===
+      // === Gary Projects 팀 (claude-gary 백엔드, fallback: claude-viewster) ===
       {
         id: "gary-be",
         name: "서연",
@@ -132,7 +132,7 @@
         agentDir: "/data/agents/gary-be/agent",
         model: {
           primary: "claude-gary/claude-sonnet-4-6",
-          fallbacks: []
+          fallbacks: ["claude-viewster/claude-sonnet-4-6"]
         }
       },
       {
@@ -142,7 +142,7 @@
         agentDir: "/data/agents/gary-web/agent",
         model: {
           primary: "claude-gary/claude-sonnet-4-6",
-          fallbacks: []
+          fallbacks: ["claude-viewster/claude-sonnet-4-6"]
         }
       },
       {
@@ -152,7 +152,7 @@
         agentDir: "/data/agents/gary-mobile/agent",
         model: {
           primary: "claude-gary/claude-sonnet-4-6",
-          fallbacks: []
+          fallbacks: ["claude-viewster/claude-sonnet-4-6"]
         }
       },
       {
@@ -162,7 +162,7 @@
         agentDir: "/data/agents/gary-design/agent",
         model: {
           primary: "claude-gary/claude-sonnet-4-6",
-          fallbacks: []
+          fallbacks: ["claude-viewster/claude-sonnet-4-6"]
         }
       },
       {
@@ -172,7 +172,7 @@
         agentDir: "/data/agents/gary-qa/agent",
         model: {
           primary: "claude-gary/claude-sonnet-4-6",
-          fallbacks: []
+          fallbacks: ["claude-viewster/claude-sonnet-4-6"]
         }
       }
     ]
